@@ -15,17 +15,88 @@ export default function MatrixRainEnhanced() {
       changeFrequency: number
       glowIntensity: number
       fadeLength: number
+      katakanaRatio: number // Ratio of katakana vs latin chars
     }>
   >([])
 
-  // Characters used in the Matrix rain
-  const matrixChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%\"'#&_(),.;:?!\\|{}<>[]^~"
+  // Latin characters
+  const latinChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%\"'#&_(),.;:?!\\|{}<>[]^~"
+
+  // Katakana characters
+  const katakanaChars = [
+    "ｦ",
+    "ｧ",
+    "ｨ",
+    "ｩ",
+    "ｪ",
+    "ｫ",
+    "ｬ",
+    "ｭ",
+    "ｮ",
+    "ｯ",
+    "ｱ",
+    "ｲ",
+    "ｳ",
+    "ｴ",
+    "ｵ",
+    "ｶ",
+    "ｷ",
+    "ｸ",
+    "ｹ",
+    "ｺ",
+    "ｻ",
+    "ｼ",
+    "ｽ",
+    "ｾ",
+    "ｿ",
+    "ﾀ",
+    "ﾁ",
+    "ﾂ",
+    "ﾃ",
+    "ﾄ",
+    "ﾅ",
+    "ﾆ",
+    "ﾇ",
+    "ﾈ",
+    "ﾉ",
+    "ﾊ",
+    "ﾋ",
+    "ﾌ",
+    "ﾍ",
+    "ﾎ",
+    "ﾏ",
+    "ﾐ",
+    "ﾑ",
+    "ﾒ",
+    "ﾓ",
+    "ﾔ",
+    "ﾕ",
+    "ﾖ",
+    "ﾗ",
+    "ﾘ",
+    "ﾙ",
+    "ﾚ",
+    "ﾛ",
+    "ﾜ",
+    "ﾝ",
+  ].join("")
+
+  // Column spacing (reduced to increase density)
+  const COLUMN_SPACING = 14 // px between columns (reduced from 20px)
 
   // Speed categories
   const SPEED_CATEGORIES = {
     slow: { min: 0.5, max: 1.0 },
     medium: { min: 1.2, max: 1.8 },
     fast: { min: 2.0, max: 2.5 },
+  }
+
+  // Get a random character based on the katakana ratio
+  const getRandomChar = (katakanaRatio: number) => {
+    // Higher ratio means more katakana characters
+    return Math.random() < katakanaRatio
+      ? katakanaChars[Math.floor(Math.random() * katakanaChars.length)]
+      : latinChars[Math.floor(Math.random() * latinChars.length)]
   }
 
   // Initialize the rain drops
@@ -35,12 +106,12 @@ export default function MatrixRainEnhanced() {
         const { offsetWidth, offsetHeight } = containerRef.current
         setDimensions({ width: offsetWidth, height: offsetHeight })
 
-        // Calculate number of columns (one drop per 20px)
-        const numColumns = Math.floor(offsetWidth / 20)
+        // Calculate number of columns (increased density with smaller spacing)
+        const numColumns = Math.floor(offsetWidth / COLUMN_SPACING)
 
         // Create drops array with controlled randomness and distinct speed categories
         const newDrops = Array.from({ length: numColumns }, (_, i) => {
-          const x = (i * offsetWidth) / numColumns + (Math.random() * 10 - 5) // Add slight x variation
+          const x = (i * offsetWidth) / numColumns + (Math.random() * 6 - 3) // Add slight x variation
           const y = -Math.random() * offsetHeight * 2 // Start at different positions above screen
 
           // Assign a speed category
@@ -60,10 +131,23 @@ export default function MatrixRainEnhanced() {
           const glowIntensity = 0.5 + Math.random() * 0.5 // Random glow effect intensity (higher minimum)
           const fadeLength = 0.2 + Math.random() * 0.3 // Fade effect length (20-50% of screen height)
 
-          // Generate random characters for this drop
-          const chars = Array.from({ length }, () => matrixChars[Math.floor(Math.random() * matrixChars.length)])
+          // Each column has its own ratio of katakana vs latin chars (0.6-0.9 = 60-90% katakana)
+          const katakanaRatio = 0.6 + Math.random() * 0.3
 
-          return { x, y, speed, speedCategory, chars, changeFrequency, glowIntensity, fadeLength }
+          // Generate random characters for this drop with the appropriate katakana ratio
+          const chars = Array.from({ length }, () => getRandomChar(katakanaRatio))
+
+          return {
+            x,
+            y,
+            speed,
+            speedCategory,
+            chars,
+            changeFrequency,
+            glowIntensity,
+            fadeLength,
+            katakanaRatio,
+          }
         })
 
         setDrops(newDrops)
@@ -105,26 +189,27 @@ export default function MatrixRainEnhanced() {
             const { min, max } = SPEED_CATEGORIES[newSpeedCategory]
             const newSpeed = min + Math.random() * (max - min)
 
+            // Occasionally change katakana ratio when recycling
+            const newKatakanaRatio = Math.random() > 0.8 ? drop.katakanaRatio : 0.6 + Math.random() * 0.3
+
             return {
               ...drop,
               y: newY,
               speed: newSpeed,
               speedCategory: newSpeedCategory,
+              katakanaRatio: newKatakanaRatio,
               // Occasionally change length when recycling
               chars:
                 Math.random() > 0.8
                   ? drop.chars
-                  : Array.from(
-                      { length: 5 + Math.floor(Math.random() * 25) },
-                      () => matrixChars[Math.floor(Math.random() * matrixChars.length)],
-                    ),
+                  : Array.from({ length: 5 + Math.floor(Math.random() * 25) }, () => getRandomChar(newKatakanaRatio)),
               fadeLength: 0.2 + Math.random() * 0.3, // Randomize fade length when recycling
             }
           }
 
           // Randomly change some characters based on the column's change frequency
           const newChars = drop.chars.map((char) =>
-            Math.random() < drop.changeFrequency ? matrixChars[Math.floor(Math.random() * matrixChars.length)] : char,
+            Math.random() < drop.changeFrequency ? getRandomChar(drop.katakanaRatio) : char,
           )
 
           return { ...drop, y: newY, chars: newChars }
@@ -142,7 +227,11 @@ export default function MatrixRainEnhanced() {
   }, [drops, dimensions.height])
 
   return (
-    <div ref={containerRef} className="w-full h-screen bg-black overflow-hidden relative">
+    <div
+      ref={containerRef}
+      className="w-full h-screen bg-black overflow-hidden relative"
+      style={{ fontFamily: "'Courier New', monospace, 'MS Gothic', 'Meiryo', sans-serif" }}
+    >
       {drops.map((drop, dropIndex) => {
         // Calculate the fade effect based on position
         // If the column is near the bottom of the screen, apply fade
